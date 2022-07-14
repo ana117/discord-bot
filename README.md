@@ -1,2 +1,2 @@
 # N-Bot
-Trying discordpy to create a discord bot
+Trying [discordpy](https://github.com/Rapptz/discord.py) to create a discord bot
