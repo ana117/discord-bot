@@ -30,7 +30,7 @@ async def play(ctx, *args):
     voice = await join(ctx)
 
     if voice is None:
-        msg = await ctx.send(f'{ctx.author.mention} is not in a voice channel!')
+        await ctx.send(f'{ctx.author.mention} is not in a voice channel!')
         return
 
     music_data = download_music(query)
@@ -63,7 +63,7 @@ async def play(ctx, *args):
         embed_thumbnail = discord.Embed.Empty
 
     embed_desc = f'[{title}]({youtube_url})'
-    msg = await ctx.send(embed=create_embed(ctx.guild, embed_title, embed_desc, embed_thumbnail))
+    await ctx.send(embed=create_embed(ctx.guild, embed_title, embed_desc, embed_thumbnail))
 
 
 async def play_next(ctx, voice):
@@ -94,7 +94,7 @@ async def play_next(ctx, voice):
             after=lambda e: asyncio.run(play_next(ctx, voice))
         )
 
-        msg = await ctx.send(embed=create_embed(ctx.guild, embed_title, embed_desc, embed_thumbnail)),
+        await ctx.send(embed=create_embed(ctx.guild, embed_title, embed_desc, embed_thumbnail))
 
 
 @bot.command(aliases=['q'])
@@ -111,14 +111,14 @@ async def queue(ctx):
 
         embed_title = f'Queue ({len(current_queue)} song{"s" if len(current_queue) > 1 else ""})'
 
-    msg = await ctx.send(embed=create_embed(ctx.guild, embed_title, embed_desc)),
+    await ctx.send(embed=create_embed(ctx.guild, embed_title, embed_desc))
 
 
 @bot.command()
 async def clear(ctx):
     auth_error = check_user_authorization(ctx, 'clear')
     if auth_error is not None:
-        msg = await ctx.send(auth_error),
+        await ctx.send(auth_error)
 
     else:
         get_guild_music_queue(ctx.guild).clear()
@@ -126,14 +126,14 @@ async def clear(ctx):
         vc.stop()
 
         embed_title = 'Queue Cleared'
-        msg = await ctx.send(embed=create_embed(ctx.guild, embed_title)),
+        await ctx.send(embed=create_embed(ctx.guild, embed_title))
 
 
 @bot.command()
 async def skip(ctx):
     auth_error = check_user_authorization(ctx, 'skip')
     if auth_error is not None:
-        msg = await ctx.send(auth_error),
+        await ctx.send(auth_error)
 
     else:
         vc = get(bot.voice_clients, guild=ctx.guild)
@@ -159,7 +159,7 @@ async def join(ctx):
 async def leave(ctx):
     auth_error = check_user_authorization(ctx, 'leave')
     if auth_error is not None:
-        msg = await ctx.send(auth_error),
+        await ctx.send(auth_error)
 
     else:
         await clear(ctx)
@@ -173,7 +173,7 @@ async def toggle_music_setting(ctx):
 
     auth_error = check_user_authorization(ctx, changed_setting)
     if auth_error is not None:
-        msg = await ctx.send(auth_error),
+        await ctx.send(auth_error)
 
     else:
         current_setting = get_guild_music_setting(ctx.guild)
@@ -183,7 +183,7 @@ async def toggle_music_setting(ctx):
         current_setting[changed_setting] = new_setting_value
 
         embed_title = f'{changed_setting.capitalize()} is turned {new_setting_status}!'
-        msg = await ctx.send(embed=create_embed(ctx.guild, embed_title)),
+        await ctx.send(embed=create_embed(ctx.guild, embed_title))
 
 
 async def disconnect_by_inactivity(ctx, voice):
@@ -193,7 +193,7 @@ async def disconnect_by_inactivity(ctx, voice):
         embed_desc = 'No more songs in queue'
 
         asyncio.run_coroutine_threadsafe(voice.disconnect(), ctx.bot.loop)
-        msg = await ctx.send(embed=create_embed(ctx.guild, embed_title, embed_desc)),
+        await ctx.send(embed=create_embed(ctx.guild, embed_title, embed_desc))
 
 
 def main():
