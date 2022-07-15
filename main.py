@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from discord.ext import commands
 
 from utils import DEFAULT_VOLUME, download_music, check_user_authorization, \
-    get_guild_music_setting, get_guild_music_queue, create_embed
+    get_guild_music_setting, get_guild_music_queue, create_embed, send_message
 
 INTENTS = discord.Intents.all()
 FFMPEG_OPTS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
@@ -30,10 +30,7 @@ async def play(ctx, *args):
     voice = await join(ctx)
 
     if voice is None:
-        asyncio.run_coroutine_threadsafe(
-            ctx.send(f'{ctx.author.mention} is not in a voice channel!'),
-            ctx.bot.loop
-        )
+        await send_message(ctx, text=f'{ctx.author.mention} is not in a voice channel!')
         return
 
     music_data = download_music(query)
@@ -63,10 +60,7 @@ async def play(ctx, *args):
         embed_thumbnail = discord.Embed.Empty
 
     embed_desc = f'[{title}]({youtube_url})'
-    asyncio.run_coroutine_threadsafe(
-        ctx.send(embed=create_embed(ctx.guild, embed_title, embed_desc, embed_thumbnail)),
-        ctx.bot.loop
-    )
+    await send_message(ctx, embed=create_embed(ctx.guild, embed_title, embed_desc, embed_thumbnail))
 
 
 async def play_next(ctx, voice):
@@ -97,10 +91,7 @@ async def play_next(ctx, voice):
             after=lambda e: asyncio.run(play_next(ctx, voice))
         )
 
-        asyncio.run_coroutine_threadsafe(
-            ctx.send(embed=create_embed(ctx.guild, embed_title, embed_desc, embed_thumbnail)),
-            ctx.bot.loop
-        )
+        await send_message(ctx, embed=create_embed(ctx.guild, embed_title, embed_desc, embed_thumbnail))
 
 
 @bot.command(aliases=['q'])
@@ -117,20 +108,14 @@ async def queue(ctx):
 
         embed_title = f'Queue ({len(current_queue)} song{"s" if len(current_queue) > 1 else ""})'
 
-    asyncio.run_coroutine_threadsafe(
-        ctx.send(embed=create_embed(ctx.guild, embed_title, embed_desc)),
-        ctx.bot.loop
-    )
+    await send_message(ctx, embed=create_embed(ctx.guild, embed_title, embed_desc))
 
 
 @bot.command()
 async def clear(ctx):
     auth_error = check_user_authorization(ctx, 'clear')
     if auth_error is not None:
-        asyncio.run_coroutine_threadsafe(
-            ctx.send(auth_error),
-            ctx.bot.loop
-        )
+        await send_message(ctx, text=auth_error)
 
     else:
         get_guild_music_queue(ctx.guild).clear()
@@ -138,21 +123,14 @@ async def clear(ctx):
         vc.stop()
 
         embed_title = 'Queue Cleared'
-        asyncio.run_coroutine_threadsafe(
-            ctx.send(embed=create_embed(ctx.guild, embed_title)),
-            ctx.bot.loop
-        )
+        await send_message(ctx, embed=create_embed(ctx.guild, embed_title))
 
 
 @bot.command()
 async def skip(ctx):
     auth_error = check_user_authorization(ctx, 'skip')
     if auth_error is not None:
-        asyncio.run_coroutine_threadsafe(
-            ctx.send(auth_error),
-            ctx.bot.loop
-        )
-
+        await send_message(ctx, text=auth_error)
     else:
         vc = get(bot.voice_clients, guild=ctx.guild)
         vc.stop()
@@ -177,11 +155,7 @@ async def join(ctx):
 async def leave(ctx):
     auth_error = check_user_authorization(ctx, 'leave')
     if auth_error is not None:
-        asyncio.run_coroutine_threadsafe(
-            ctx.send(auth_error),
-            ctx.bot.loop
-        )
-
+        await send_message(ctx, text=auth_error)
     else:
         await clear(ctx)
         vc = get(bot.voice_clients, guild=ctx.guild)
@@ -194,11 +168,7 @@ async def toggle_music_setting(ctx):
 
     auth_error = check_user_authorization(ctx, changed_setting)
     if auth_error is not None:
-        asyncio.run_coroutine_threadsafe(
-            ctx.send(auth_error),
-            ctx.bot.loop
-        )
-
+        await send_message(ctx, text=auth_error)
     else:
         current_setting = get_guild_music_setting(ctx.guild)
 
@@ -207,10 +177,7 @@ async def toggle_music_setting(ctx):
         current_setting[changed_setting] = new_setting_value
 
         embed_title = f'{changed_setting.capitalize()} is turned {new_setting_status}!'
-        asyncio.run_coroutine_threadsafe(
-            ctx.send(embed=create_embed(ctx.guild, embed_title)),
-            ctx.bot.loop
-        )
+        await send_message(ctx, embed=create_embed(ctx.guild, embed_title))
 
 
 async def disconnect_by_inactivity(ctx, voice):
@@ -220,10 +187,7 @@ async def disconnect_by_inactivity(ctx, voice):
         embed_desc = 'No more songs in queue'
 
         asyncio.run_coroutine_threadsafe(voice.disconnect(), ctx.bot.loop)
-        asyncio.run_coroutine_threadsafe(
-            ctx.send(embed=create_embed(ctx.guild, embed_title, embed_desc)),
-            ctx.bot.loop
-        )
+        await send_message(ctx, embed=create_embed(ctx.guild, embed_title, embed_desc))
 
 
 def main():

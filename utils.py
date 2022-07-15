@@ -1,3 +1,5 @@
+import asyncio
+
 import discord
 from discord.utils import get
 from youtube_dl import YoutubeDL
@@ -73,3 +75,23 @@ def get_guild_music_queue(guild):
     if guild not in guild_music_queues:
         guild_music_queues[guild] = []
     return guild_music_queues.get(guild)
+
+
+async def send_message(ctx, text=None, embed=discord.Embed.Empty):
+    channel = ctx.channel
+    bot = ctx.me
+
+    last_message = channel.last_message
+    embeds = last_message.embeds
+
+    # if the sender is this bot and have embeds, delete it
+    if last_message.author == bot and len(embeds) > 0:
+        asyncio.run_coroutine_threadsafe(
+            last_message.delete(),
+            ctx.bot.loop
+        )
+
+    asyncio.run_coroutine_threadsafe(
+        ctx.send(text, embed=embed),
+        ctx.bot.loop
+    )
