@@ -1,8 +1,8 @@
-import asyncio
-
 import discord
+
 from discord.utils import get
 from youtube_dl import YoutubeDL
+from scraper import find_song_data
 
 DEFAULT_VOLUME = 1.0
 guild_music_queues = {}
@@ -38,8 +38,8 @@ def create_music_settings_status(guild):
     return f'loop: {loop_status} | shuffle: {shuffle_status}'
 
 
-def create_embed(guild, title, description=discord.Embed.Empty, thumbnail=discord.Embed.Empty):
-    embed = discord.Embed(title=title, description=description)
+def create_embed(guild, title, description=discord.Embed.Empty, thumbnail=discord.Embed.Empty, url=discord.Embed.Empty):
+    embed = discord.Embed(title=title, description=description, url=url)
     embed.set_footer(text=create_music_settings_status(guild))
     embed.set_thumbnail(url=thumbnail)
     return embed
@@ -77,7 +77,10 @@ def get_guild_music_queue(guild):
     return guild_music_queues.get(guild)
 
 
-async def send_message(ctx, text=None, embed=discord.Embed.Empty):
+async def send_message(ctx, text=None, embed=discord.Embed.Empty, reactions=None):
+    if reactions is None:
+        reactions = []
+
     channel = ctx.channel
     bot = ctx.me
 
@@ -86,12 +89,35 @@ async def send_message(ctx, text=None, embed=discord.Embed.Empty):
 
     # if the sender is this bot and have embeds, delete it
     if last_message.author == bot and len(embeds) > 0:
-        asyncio.run_coroutine_threadsafe(
-            last_message.delete(),
-            ctx.bot.loop
-        )
+        await last_message.delete()
 
-    asyncio.run_coroutine_threadsafe(
-        ctx.send(text, embed=embed),
-        ctx.bot.loop
-    )
+    msg = await ctx.send(text, embed=embed)
+    for reaction in reactions:
+        await add_reaction(msg, reaction)
+    return msg
+
+
+async def add_reaction(message, reaction):
+    await message.add_reaction(reaction)
+
+
+async def get_lyric(query):
+    title = clean_lyric_query(query)
+    return find_song_data(title)
+
+
+def clean_lyric(lyric):
+    lyric = lyric.split('\n', 1)[1]     # remove song title in the first line
+    if lyric.endswith('Embed'):         # remove embed
+        lyric = lyric[:-5]
+    while lyric[-1].isnumeric():        # remove 'pyong' count
+        lyric = lyric[:-1]
+
+    return lyric
+
+
+def clean_lyric_query(query):
+    excluded = {'M/V', 'MV'}
+    for word in excluded:
+        query = query.replace(word, '')
+    return query
