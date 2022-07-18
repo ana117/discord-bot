@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from discord.ext import commands
 
 from utils import DEFAULT_VOLUME, download_music, check_user_authorization, \
-    get_guild_music_setting, get_guild_music_queue, create_embed, send_message
+    get_guild_music_setting, get_guild_music_queue, create_embed, send_message, get_lyric, clean_lyric
 
 INTENTS = discord.Intents.all()
 FFMPEG_OPTS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
@@ -47,26 +47,32 @@ async def play(ctx, *args):
         'thumbnail': thumbnail
     })
 
+    reactions = []
     if not voice.is_playing():
         voice.play(
             discord.PCMVolumeTransformer(FFmpegPCMAudio(audio_url, **FFMPEG_OPTS), volume=DEFAULT_VOLUME),
-            after=lambda e: asyncio.run(play_next(ctx, voice))
+            after=lambda e: asyncio.run_coroutine_threadsafe(play_next(ctx, voice), ctx.bot.loop)
         )
 
         embed_title = 'Now playing'
         embed_thumbnail = thumbnail
+        reactions.append('📜')
     else:
         embed_title = 'Added to queue'
         embed_thumbnail = discord.Embed.Empty
 
     embed_desc = f'[{title}]({youtube_url})'
-    await send_message(ctx, embed=create_embed(ctx.guild, embed_title, embed_desc, embed_thumbnail))
+    await send_message(
+        ctx,
+        embed=create_embed(ctx.guild, embed_title, embed_desc, embed_thumbnail),
+        reactions=reactions
+    )
 
 
 async def play_next(ctx, voice):
     current_queue = get_guild_music_queue(ctx.guild)
     if len(current_queue) == 0:
-        asyncio.run_coroutine_threadsafe(disconnect_by_inactivity(ctx, voice), ctx.bot.loop)
+        await disconnect_by_inactivity(ctx, voice)
         return
 
     current_settings = get_guild_music_setting(ctx.guild)
@@ -79,19 +85,24 @@ async def play_next(ctx, voice):
         current_queue.append(last_played)
 
     if len(current_queue) == 0:
-        asyncio.run_coroutine_threadsafe(disconnect_by_inactivity(ctx, voice), ctx.bot.loop)
+        await disconnect_by_inactivity(ctx, voice)
     else:
         music = current_queue[0]
         embed_title = 'Now playing'
         embed_desc = f'[{music["title"]}]({music["youtube_url"]})'
         embed_thumbnail = music['thumbnail']
+        reactions = ['📜']
 
         voice.play(
             discord.PCMVolumeTransformer(FFmpegPCMAudio(music['audio_url'], **FFMPEG_OPTS), volume=DEFAULT_VOLUME),
-            after=lambda e: asyncio.run(play_next(ctx, voice))
+            after=lambda e: asyncio.run_coroutine_threadsafe(play_next(ctx, voice), ctx.bot.loop)
         )
 
-        await send_message(ctx, embed=create_embed(ctx.guild, embed_title, embed_desc, embed_thumbnail))
+        await send_message(
+            ctx,
+            embed=create_embed(ctx.guild, embed_title, embed_desc, embed_thumbnail),
+            reactions=reactions
+        )
 
 
 @bot.command(aliases=['q'])
@@ -180,20 +191,62 @@ async def toggle_music_setting(ctx):
         await send_message(ctx, embed=create_embed(ctx.guild, embed_title))
 
 
+@bot.command()
+async def lyric(ctx, *args):
+    query = " ".join(args)
+
+    is_manual_search = True
+    if len(query) == 0:
+        is_manual_search = False
+        current_queue = get_guild_music_queue(ctx.guild)
+        if len(current_queue) != 0:
+            query = current_queue[0].get('title')
+
+    song = await get_lyric(query)
+    if song is None:
+        if is_manual_search:
+            description = 'Try a more specific query or add the artist name on the query'
+        else:
+            description = 'Try searching manually using `n!lyric <query>`'
+        embed = create_embed(ctx.guild, f'Lyric for {query} not found', description=description)
+    else:
+        song_data = song.to_dict()
+        embed = create_embed(
+            ctx.guild,
+            song_data.get('full_title'),
+            description=clean_lyric(song_data.get('lyrics')),
+            url=song_data.get('url')
+        )
+
+    await send_message(ctx, embed=embed)
+
+
 async def disconnect_by_inactivity(ctx, voice):
     await asyncio.sleep(60)
-    if not voice.is_playing():
+    vc = get(bot.voice_clients, guild=ctx.guild)
+    if vc is not None and not voice.is_playing():
         embed_title = 'Disconnecting'
         embed_desc = 'No more songs in queue'
 
-        asyncio.run_coroutine_threadsafe(voice.disconnect(), ctx.bot.loop)
+        await voice.disconnect()
         await send_message(ctx, embed=create_embed(ctx.guild, embed_title, embed_desc))
+
+
+@bot.event
+async def on_reaction_add(reaction, user):
+    message_author = reaction.message.author
+    embeds = reaction.message.embeds
+    print()
+    if len(embeds) > 0:
+        embed = embeds[0]
+        if message_author == bot.user and embed.title == 'Now playing' and reaction.emoji == '📜' and user != bot.user:
+            print(embed.description)
 
 
 def main():
     print(discord.__version__)
     load_dotenv()
-    token = os.getenv('TOKEN')
+    token = os.getenv('DISCORD_TOKEN')
     bot.run(token)
 
 
