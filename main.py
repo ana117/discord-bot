@@ -33,19 +33,20 @@ async def play(ctx, *args):
         await send_message(ctx, text=f'{ctx.author.mention} is not in a voice channel!')
         return
 
-    music_data = download_music(query)
-    title = music_data['title']
-    youtube_url = music_data['webpage_url']
-    audio_url = music_data['url']
-    thumbnail = music_data['thumbnail']
-
+    music_datas = download_music(query)
     current_queue = get_guild_music_queue(ctx.guild)
-    current_queue.append({
-        'title': title,
-        'youtube_url': youtube_url,
-        'audio_url': audio_url,
-        'thumbnail': thumbnail
-    })
+    for music_data in music_datas:
+        current_queue.append({
+            'title': music_data['title'],
+            'youtube_url': music_data['webpage_url'],
+            'audio_url': music_data['url'],
+            'thumbnail': music_data['thumbnail']
+        })
+
+    title = current_queue[0]['title']
+    youtube_url = current_queue[0]['youtube_url']
+    audio_url = current_queue[0]['audio_url']
+    thumbnail = current_queue[0]['thumbnail']
 
     reactions = []
     if not voice.is_playing():

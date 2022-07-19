@@ -16,12 +16,12 @@ default_music_setting = {
 
 def download_music(query):
     youtube_url = extract_query(query)
-    ydl_opts = {'format': 'bestaudio', 'noplaylist': 'True'}
+    ydl_opts = {'format': 'bestaudio'}
 
     with YoutubeDL(ydl_opts) as ydl:
         ydl.cache.remove()
-        info = ydl.extract_info(f'ytsearch:{youtube_url}', download=False)
-    return info['entries'][0]
+        info = ydl.extract_info(f'{youtube_url}', download=False)
+    return info['entries']
 
 
 def extract_query(query):
