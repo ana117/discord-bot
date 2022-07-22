@@ -16,7 +16,7 @@ default_music_setting = {
 
 def download_music(query):
     youtube_url = extract_query(query)
-    ydl_opts = {'format': 'bestaudio'}
+    ydl_opts = {'format': 'bestaudio', 'quiet': True}
 
     with YoutubeDL(ydl_opts) as ydl:
         ydl.cache.remove()
