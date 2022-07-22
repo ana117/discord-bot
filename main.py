@@ -111,14 +111,15 @@ async def queue(ctx):
     current_queue = get_guild_music_queue(ctx.guild)
     embed_desc = ''
 
-    if len(current_queue) == 0:
-        embed_title = f'Empty Queue'
-    else:
-        embed_desc = f'Now playing: [{current_queue[0]["title"]}]({current_queue[0]["youtube_url"]})\n\n'
-        for i in range(len(current_queue)):
-            embed_desc += f'{i + 1}. [{current_queue[i]["title"]}]({current_queue[i]["youtube_url"]})\n'
+    embed_title = f'Empty Queue'
+    if len(current_queue) != 0:
+        embed_desc = f'**Now playing:**  [{current_queue[0]["title"]}]({current_queue[0]["youtube_url"]})\n\n'
 
-        embed_title = f'Queue ({len(current_queue)} song{"s" if len(current_queue) > 1 else ""})'
+        if len(current_queue) > 1:
+            embed_title = f'Queue ({len(current_queue)-1} song{"s" if len(current_queue)-1 > 1 else ""})'
+
+            for i in range(1, len(current_queue)):
+                embed_desc += f'{i}.  [{current_queue[i]["title"]}]({current_queue[i]["youtube_url"]})\n'
 
     await send_message(ctx, embed=create_embed(ctx.guild, embed_title, embed_desc))
 
