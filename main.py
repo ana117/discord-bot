@@ -20,6 +20,9 @@ bot = commands.Bot(command_prefix='n!', intents=INTENTS)
 
 @bot.event
 async def on_ready():
+    activity = discord.Activity(name='over you', type=discord.ActivityType.watching)
+    await bot.change_presence(activity=activity)
+
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
     print('------\n')
 
@@ -161,7 +164,9 @@ async def join(ctx):
         return vc
 
     channel = ctx.author.voice.channel
-    return await channel.connect()
+    voice = await channel.connect()
+    await ctx.guild.change_voice_state(channel=voice.channel, self_deaf=True)
+    return voice
 
 
 @bot.command()
