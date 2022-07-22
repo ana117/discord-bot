@@ -43,10 +43,10 @@ async def play(ctx, *args):
             'thumbnail': music_data['thumbnail']
         })
 
-    title = current_queue[0]['title']
-    youtube_url = current_queue[0]['youtube_url']
-    audio_url = current_queue[0]['audio_url']
-    thumbnail = current_queue[0]['thumbnail']
+    title = music_datas[0]['title']
+    youtube_url = music_datas[0]['webpage_url']
+    audio_url = music_datas[0]['url']
+    thumbnail = music_datas[0]['thumbnail']
 
     reactions = []
     if not voice.is_playing():
