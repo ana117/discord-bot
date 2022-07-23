@@ -49,20 +49,19 @@ def check_user_authorization(ctx, used_command):
     user_vc = ctx.author.voice
     vc = get(ctx.bot.voice_clients, guild=ctx.guild)
 
-    error = None
     # check if user is in a voice channel
     if user_vc is None:
-        error = f'{ctx.author.mention} is not in a voice channel!'
+        return f'{ctx.author.mention} is not in a voice channel!'
 
     # check if bot is in a voice channel
     if vc is None:
-        error = 'Bot is not in a voice channel'
+        return 'Bot is not in a voice channel!'
 
     # check if bot is in the same voice channel as user
     if vc.channel != user_vc.channel:
-        error = f'{ctx.author.mention}, please join {vc.channel.mention} before using !{used_command}'
+        return f'{ctx.author.mention}, please join {vc.channel.mention} before using `{ctx.prefix}{used_command}`.'
 
-    return error
+    return None
 
 
 def get_guild_music_setting(guild):
