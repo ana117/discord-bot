@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from discord.ext import commands
 
 from utils import DEFAULT_VOLUME, download_music, check_user_authorization, \
-    get_guild_music_setting, get_guild_music_queue, create_embed, send_message, get_lyric, clean_lyric, \
+    get_guild_music_setting, get_guild_music_queue, create_embed, send_message, get_song_data, clean_lyric, \
     update_help_command_info
 
 INTENTS = discord.Intents.all()
@@ -277,7 +277,7 @@ async def lyric(ctx, *args):
         if len(current_queue) != 0:
             query = current_queue[0].get('title')
 
-    song = await get_lyric(query)
+    song = await get_song_data(query)
     if song is None:
         if is_manual_search:
             description = 'Try a more specific query or add the artist name on the query'

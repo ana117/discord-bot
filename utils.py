@@ -103,7 +103,7 @@ async def add_reaction(message, reaction):
     await message.add_reaction(reaction)
 
 
-async def get_lyric(query):
+async def get_song_data(query):
     title = clean_lyric_query(query)
     return find_song_data(title)
 
