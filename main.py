@@ -309,13 +309,33 @@ async def disconnect_by_inactivity(ctx, voice):
 
 @bot.event
 async def on_reaction_add(reaction, user):
+    guild = reaction.message.guild
+    channel = reaction.message.channel
     message_author = reaction.message.author
     embeds = reaction.message.embeds
-    print()
+
     if len(embeds) > 0:
         embed = embeds[0]
         if message_author == bot.user and embed.title == 'Now playing' and reaction.emoji == '📜' and user != bot.user:
-            print(embed.description)
+            current_queue = get_guild_music_queue(guild)
+            if len(current_queue) != 0:
+                title = current_queue[0].get('title')
+                song = await get_song_data(title)
+                if song is None:
+                    description = 'Try searching manually using `n!lyric <query>`'
+                    embed = create_embed(guild, f'Lyric for {title} not found', description=description)
+                else:
+                    song_data = song.to_dict()
+                    embed = create_embed(
+                        guild,
+                        song_data.get('full_title'),
+                        description=clean_lyric(song_data.get('lyrics')),
+                        url=song_data.get('url')
+                    )
+
+                await channel.send(embed=embed)
+            else:
+                await reaction.remove(user)
 
 
 def main():
