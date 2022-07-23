@@ -91,7 +91,10 @@ async def send_message(ctx, text=None, embed=discord.Embed.Empty, reactions=None
     if last_message.author == bot and len(embeds) > 0:
         await last_message.delete()
 
-    msg = await ctx.send(text, embed=embed)
+    if embed == discord.Embed.Empty:
+        msg = await ctx.send(text)
+    else:
+        msg = await ctx.send(text, embed=embed)
     for reaction in reactions:
         await add_reaction(msg, reaction)
     return msg
