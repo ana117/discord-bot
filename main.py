@@ -235,21 +235,32 @@ async def leave(ctx):
         await vc.disconnect()
 
 
-@bot.command(aliases=['loop', 'shuffle'])
-async def toggle_music_setting(ctx):
-    changed_setting = ctx.invoked_with
+@bot.command(brief='Toggle loop queue',
+             usage='`n!loop`',
+             description='Turn loop on if currently off and vice versa.')
+async def loop(ctx):
+    await toggle_music_setting(ctx, 'loop')
 
-    auth_error = check_user_authorization(ctx, changed_setting)
+
+@bot.command(brief='Toggle shuffle queue',
+             usage='`n!shuffle`',
+             description='Turn shuffle on if currently off and vice versa.')
+async def shuffle(ctx):
+    await toggle_music_setting(ctx, 'shuffle')
+
+
+async def toggle_music_setting(ctx, setting):
+    auth_error = check_user_authorization(ctx, setting)
     if auth_error is not None:
         await send_message(ctx, text=auth_error)
     else:
         current_setting = get_guild_music_setting(ctx.guild)
 
-        new_setting_value = False if current_setting[changed_setting] else True
+        new_setting_value = False if current_setting[setting] else True
         new_setting_status = 'on' if new_setting_value else 'off'
-        current_setting[changed_setting] = new_setting_value
+        current_setting[setting] = new_setting_value
 
-        embed_title = f'{changed_setting.capitalize()} is turned {new_setting_status}!'
+        embed_title = f'{setting.capitalize()} is turned {new_setting_status}!'
         await send_message(ctx, embed=create_embed(ctx.guild, embed_title))
 
 
