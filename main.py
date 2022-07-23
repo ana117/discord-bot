@@ -10,12 +10,51 @@ from dotenv import load_dotenv
 from discord.ext import commands
 
 from utils import DEFAULT_VOLUME, download_music, check_user_authorization, \
-    get_guild_music_setting, get_guild_music_queue, create_embed, send_message, get_lyric, clean_lyric
+    get_guild_music_setting, get_guild_music_queue, create_embed, send_message, get_lyric, clean_lyric, \
+    update_help_command_info
 
 INTENTS = discord.Intents.all()
 FFMPEG_OPTS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 
-bot = commands.Bot(command_prefix='n!', intents=INTENTS)
+
+class CustomHelp(commands.MinimalHelpCommand):
+    def add_bot_commands_formatting(self, commands, heading):
+        output = ['```']
+        for command in commands:
+            spaces = 25 - len(command.name)
+            blank_space = ' '
+            if spaces < 0:
+                spaces = 0
+            spaces_str = blank_space * spaces
+            output.append(f'{command.name}{spaces_str}{command.brief}')
+        output.append('```')
+        self.paginator.add_line('\n'.join(output))
+
+    def add_command_formatting(self, command):
+        self.paginator.add_line(f'**{self.clean_prefix}{command.qualified_name}**\n')
+        self.paginator.add_line(f'{command.description}\n')
+        self.paginator.add_line(f'**Usage:** {command.usage}')
+
+        if command.aliases:
+            self.add_aliases_formatting(command.aliases)
+
+    def add_aliases_formatting(self, aliases):
+        output = f'**{self.aliases_heading}** '
+        formatted_aliases = []
+        for alias in aliases:
+            formatted_aliases.append(f'n!{alias}')
+        output += ', '.join(formatted_aliases)
+        self.paginator.add_line(output)
+
+    async def send_pages(self):
+        destination = self.get_destination()
+        embed = discord.Embed(description='')
+        for page in self.paginator.pages:
+            embed.description += page
+        await destination.send(embed=embed)
+
+
+bot = commands.Bot(command_prefix='n!', intents=INTENTS, help_command=CustomHelp())
 
 
 @bot.event
@@ -27,7 +66,11 @@ async def on_ready():
     print('------\n')
 
 
-@bot.command(aliases=['p'])
+@bot.command(aliases=['p'],
+             brief='Play an audio from YouTube',
+             usage='`n!play <query>` |  query can be a video title or a YouTube URL.',
+             description='Play an audio from YouTube. '
+                         'If the bot is playing something, than this command will add the new audio to the queue.')
 async def play(ctx, *args):
     query = " ".join(args)
     voice = await join(ctx)
@@ -109,7 +152,10 @@ async def play_next(ctx, voice):
         )
 
 
-@bot.command(aliases=['q'])
+@bot.command(aliases=['q'],
+             brief='Show current queue',
+             usage='`n!queue`',
+             description='Show current queue (with number of songs left and currently playing song).')
 async def queue(ctx):
     current_queue = get_guild_music_queue(ctx.guild)
     embed_desc = ''
@@ -119,7 +165,7 @@ async def queue(ctx):
         embed_desc = f'**Now playing:**  [{current_queue[0]["title"]}]({current_queue[0]["youtube_url"]})\n\n'
 
         if len(current_queue) > 1:
-            embed_title = f'Queue ({len(current_queue)-1} song{"s" if len(current_queue)-1 > 1 else ""})'
+            embed_title = f'Queue ({len(current_queue) - 1} song{"s" if len(current_queue) - 1 > 1 else ""})'
 
             for i in range(1, len(current_queue)):
                 embed_desc += f'{i}.  [{current_queue[i]["title"]}]({current_queue[i]["youtube_url"]})\n'
@@ -127,7 +173,9 @@ async def queue(ctx):
     await send_message(ctx, embed=create_embed(ctx.guild, embed_title, embed_desc))
 
 
-@bot.command()
+@bot.command(brief='Clear queue',
+             usage='`n!clear`',
+             description='Clear queue and stop currently playing song.')
 async def clear(ctx):
     auth_error = check_user_authorization(ctx, 'clear')
     if auth_error is not None:
@@ -142,7 +190,9 @@ async def clear(ctx):
         await send_message(ctx, embed=create_embed(ctx.guild, embed_title))
 
 
-@bot.command()
+@bot.command(brief='Skip current song',
+             usage='`n!skip`',
+             description='Skip currently playing song.')
 async def skip(ctx):
     auth_error = check_user_authorization(ctx, 'skip')
     if auth_error is not None:
@@ -152,7 +202,9 @@ async def skip(ctx):
         vc.stop()
 
 
-@bot.command()
+@bot.command(brief='Join voice channel',
+             usage='`n!join`',
+             description="Join command's author voice channel.")
 async def join(ctx):
     # check if user is in a voice channel
     if ctx.author.voice is None:
@@ -169,7 +221,10 @@ async def join(ctx):
     return voice
 
 
-@bot.command()
+@bot.command(brief='Leave voice channel',
+             usage='`n!leave`',
+             description='Leave currently connected voice channel. '
+                         'Can be only used by user on the same voice channel')
 async def leave(ctx):
     auth_error = check_user_authorization(ctx, 'leave')
     if auth_error is not None:
@@ -198,7 +253,9 @@ async def toggle_music_setting(ctx):
         await send_message(ctx, embed=create_embed(ctx.guild, embed_title))
 
 
-@bot.command()
+@bot.command(brief='Get a song lyric',
+             usage='`n!lyric`  or  `n!lyric <query>`',
+             description='Get a song lyric. If no query is used, will use currently playing song title.')
 async def lyric(ctx, *args):
     query = " ".join(args)
 
@@ -254,6 +311,8 @@ def main():
     print(discord.__version__)
     load_dotenv()
     token = os.getenv('DISCORD_TOKEN')
+    update_help_command_info(bot.commands)
+
     bot.run(token)
 
 

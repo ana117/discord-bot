@@ -124,3 +124,13 @@ def clean_lyric_query(query):
     for word in excluded:
         query = query.replace(word, '')
     return query
+
+
+def update_help_command_info(commands):
+    for command in commands:
+        if command.name == 'help':
+            command.brief = 'Show help'
+            command.usage = '`n!help`  or   `n!help <command>`'
+            command.description = 'Show list of commands with a short description or ' \
+                                  'a detailed description of a specific command.'
+            break
